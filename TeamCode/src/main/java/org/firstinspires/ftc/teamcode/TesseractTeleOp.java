@@ -102,19 +102,21 @@ public class TesseractTeleOp extends OpMode {
         // Crane Motor Speed
         double cranePower = 0;
 
-        if (DPadUp && !craneMotor.getCurrentPosition() > CraneMax) {
+        if (DPadUp && !(craneMotor.getCurrentPosition() > CraneMax)) {
             cranePower = -1;
-        } else if (DPadDown) {
+        } else if (DPadDown && !(craneMotor.getCurrentPosition() < CraneMin)) {
             cranePower = 1;
-        }
-
-        if (craneMotor.getCurrentPosition() > CraneMax || craneMotor.getCurrentPosition() < CraneMin) {
+        } else {
             cranePower = 0;
         }
 
+        /*
+        if (craneMotor.getCurrentPosition() > CraneMax || craneMotor.getCurrentPosition() < CraneMin) {
+            cranePower = 0;
+        }
+        */
+
         craneMotor.setPower(cranePower);
-
-
 
         /*if (DPadDown && craneMotor.getCurrentPosition() > CraneMin) {
             craneMotor.setPower(-1.0);
