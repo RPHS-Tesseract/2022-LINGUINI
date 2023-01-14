@@ -22,8 +22,8 @@ public class TesseractTeleOp extends OpMode {
     public DcMotor craneMotor;
     // Servos
     public Servo handServo;
-    final double ServoSpeed = 0.01;
-    double ServoPosition = 0.0;
+    final double ServoOpenPos = 0.25;
+    double ServoClosePos = 0.0;
 
     @Override
     public void init() {
@@ -69,10 +69,10 @@ public class TesseractTeleOp extends OpMode {
         float RJoyX = gamepad1.right_stick_x;
         double LJoyMag = Math.sqrt(Math.pow(LJoyX, 2) + Math.pow(LJoyY, 2));
         // Motor Power
-        double FLPower = LJoyX - LJoyY + RJoyX;
-        double FRPower = LJoyX + LJoyY - RJoyX;
-        double RLPower = LJoyX + LJoyY + RJoyX;
-        double RRPower = LJoyX - LJoyY - RJoyX;
+        double FLPower = -LJoyX + LJoyY + RJoyX;
+        double FRPower = -LJoyX - LJoyY - RJoyX;
+        double RLPower = -LJoyX - LJoyY + RJoyX;
+        double RRPower = -LJoyX + LJoyY - RJoyX;
 
         // Old Algorithm
         /*double FLPower = Math.sin(Math.atan2(LJoyX, LJoyY)+Math.PI/4)*LJoyMag+RJoyX;
@@ -105,13 +105,11 @@ public class TesseractTeleOp extends OpMode {
         }
         // Setting Servo Speed
         if (AButton) {
-            ServoPosition += ServoSpeed;
+            handServo.setPosition(ServoOpenPos);
         }
         else if (BButton) {
-            ServoPosition -= ServoSpeed;
+            handServo.setPosition(ServoClosePos);
         }
-        ServoPosition = Range.clip(ServoPosition, 0.0, 1.0);
-        handServo.setPosition(ServoPosition);
         telemetry.addData("Hand Position", handServo.getPosition());
         telemetry.addData("A Button", gamepad1.a);
     }
