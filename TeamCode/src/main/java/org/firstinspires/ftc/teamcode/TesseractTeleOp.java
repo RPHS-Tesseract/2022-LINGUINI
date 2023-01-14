@@ -22,8 +22,10 @@ public class TesseractTeleOp extends OpMode {
     public DcMotor craneMotor;
     // Servos
     public Servo handServo;
-    final double ServoOpenPos = 0.25;
-    double ServoClosePos = 0.0;
+    final double ServoOpenPos = 0.85;
+    double ServoClosePos = 1.0;
+    int CraneMax = 10000;
+    int CraneMin = 0;
 
     @Override
     public void init() {
@@ -43,8 +45,10 @@ public class TesseractTeleOp extends OpMode {
         rearLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rearRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         craneMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        craneMotor.setDirection(DcMotor.Direction.REVERSE);
 
-        craneMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        craneMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        craneMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         frontRightMotor.setDirection(DcMotor.Direction.REVERSE);
         rearRightMotor.setDirection(DcMotor.Direction.REVERSE);
@@ -61,18 +65,18 @@ public class TesseractTeleOp extends OpMode {
         boolean AButton = gamepad1.a;
         boolean BButton = gamepad1.b;
         // Bumpers
-        boolean LBumper = gamepad1.right_bumper;
-        boolean RBumper = gamepad1.left_bumper;
+        boolean DPadUp = gamepad1.dpad_up;
+        boolean DPadDown = gamepad1.dpad_down;
         // Joysticks
-        float LJoyX = gamepad1.left_stick_x;
-        float LJoyY = gamepad1.left_stick_y;
-        float RJoyX = gamepad1.right_stick_x;
+        float LJoyX = (float) (Math.pow(gamepad1.left_stick_x, 2) * Math.signum(gamepad1.left_stick_x));
+        float LJoyY = (float) (Math.pow(gamepad1.left_stick_y, 2) * Math.signum(gamepad1.left_stick_y));
+        float RJoyX = (float) (Math.pow(gamepad1.right_stick_x, 2) * Math.signum(gamepad1.right_stick_x));
         double LJoyMag = Math.sqrt(Math.pow(LJoyX, 2) + Math.pow(LJoyY, 2));
         // Motor Power
-        double FLPower = -LJoyX + LJoyY + RJoyX;
-        double FRPower = -LJoyX - LJoyY - RJoyX;
-        double RLPower = -LJoyX - LJoyY + RJoyX;
-        double RRPower = -LJoyX + LJoyY - RJoyX;
+        double FLPower = LJoyX + LJoyY - RJoyX;
+        double FRPower = -LJoyX + LJoyY + RJoyX;
+        double RLPower = -LJoyX + LJoyY - RJoyX;
+        double RRPower = LJoyX + LJoyY + RJoyX;
 
         // Old Algorithm
         /*double FLPower = Math.sin(Math.atan2(LJoyX, LJoyY)+Math.PI/4)*LJoyMag+RJoyX;
@@ -93,16 +97,36 @@ public class TesseractTeleOp extends OpMode {
         frontRightMotor.setPower(ScaledFRPower);
         rearLeftMotor.setPower(ScaledRLPower); // Reversed Motor
         rearRightMotor.setPower(ScaledRRPower);
+
+
         // Crane Motor Speed
-        if (RBumper) {
-            craneMotor.setPower(1.0);
+        double cranePower = 0;
+
+        if (DPadUp && !craneMotor.getCurrentPosition() > CraneMax) {
+            cranePower = -1;
+        } else if (DPadDown) {
+            cranePower = 1;
         }
-        else if (LBumper) {
+
+        if (craneMotor.getCurrentPosition() > CraneMax || craneMotor.getCurrentPosition() < CraneMin) {
+            cranePower = 0;
+        }
+
+        craneMotor.setPower(cranePower);
+
+
+
+        /*if (DPadDown && craneMotor.getCurrentPosition() > CraneMin) {
             craneMotor.setPower(-1.0);
+        }
+        else if (DPadUp && craneMotor.getCurrentPosition() < CraneMax) {
+            craneMotor.setPower(1.0);
         }
         else {
             craneMotor.setPower(0.0);
-        }
+        }*/
+
+
         // Setting Servo Speed
         if (AButton) {
             handServo.setPosition(ServoOpenPos);
@@ -110,7 +134,10 @@ public class TesseractTeleOp extends OpMode {
         else if (BButton) {
             handServo.setPosition(ServoClosePos);
         }
-        telemetry.addData("Hand Position", handServo.getPosition());
-        telemetry.addData("A Button", gamepad1.a);
+        telemetry.addData("Gigachad Motor:", craneMotor.getCurrentPosition());
+        telemetry.addData("FR", FRPower);
+        telemetry.addData("FL", FLPower);
+        telemetry.addData("RR", RRPower);
+        telemetry.addData("RL", RLPower);
     }
 }
