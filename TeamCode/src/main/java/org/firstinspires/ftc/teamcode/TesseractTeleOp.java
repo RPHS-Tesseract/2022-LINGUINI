@@ -23,9 +23,10 @@ public class TesseractTeleOp extends OpMode {
     // Servos
     public Servo handServo;
     final double ServoOpenPos = 0.85;
-    double ServoClosePos = 1.0;
-    int CraneMax = 10000;
-    int CraneMin = 0;
+    final double ServoClosePos = 1.0;
+    final int CraneMax = 55000;
+    final int CraneMin = 0;
+    boolean EncoderToggle = true;
 
     @Override
     public void init() {
@@ -101,11 +102,14 @@ public class TesseractTeleOp extends OpMode {
 
         // Crane Motor Speed
         double cranePower = 0;
-
         if (DPadUp && !(craneMotor.getCurrentPosition() > CraneMax)) {
-            cranePower = -1;
+            if (!(EncoderToggle) || !(craneMotor.getCurrentPosition() > CraneMax)) {
+                cranePower = -1;
+            }
         } else if (DPadDown && !(craneMotor.getCurrentPosition() < CraneMin)) {
-            cranePower = 1;
+            if (!(EncoderToggle) || !(craneMotor.getCurrentPosition() < CraneMin)) {
+                cranePower = 1;
+            }
         } else {
             cranePower = 0;
         }
@@ -136,6 +140,12 @@ public class TesseractTeleOp extends OpMode {
         else if (BButton) {
             handServo.setPosition(ServoClosePos);
         }
+
+        // Encoder Reset
+        if (gamepad1.dpad_left && gamepad1.start && gamepad1.right_bumper && gamepad1.left_bumper) {
+
+        }
+
         telemetry.addData("Gigachad Motor:", craneMotor.getCurrentPosition());
         telemetry.addData("FR", FRPower);
         telemetry.addData("FL", FLPower);
