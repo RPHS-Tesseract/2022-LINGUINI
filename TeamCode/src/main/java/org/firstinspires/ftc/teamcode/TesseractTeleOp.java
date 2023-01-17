@@ -5,12 +5,18 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
 @TeleOp(name = "Tesseract")
 public class TesseractTeleOp extends OpMode {
@@ -20,6 +26,9 @@ public class TesseractTeleOp extends OpMode {
     public DcMotor rearLeftMotor;
     public DcMotor rearRightMotor;
     public DcMotor craneMotor;
+    public IMU controlIMU;
+    public IMU.Parameters IMUparams;
+    public YawPitchRollAngles robotOrientation;
     // Servos
     public Servo handServo;
     final double ServoOpenPos = 0.85;
@@ -37,6 +46,17 @@ public class TesseractTeleOp extends OpMode {
         rearLeftMotor = hardwareMap.get(DcMotor.class, "RL");
         rearRightMotor = hardwareMap.get(DcMotor.class, "RR");
         craneMotor = hardwareMap.get(DcMotor.class, "CRANE");
+
+        // IMU Setup
+        controlIMU = hardwareMap.get(IMU.class, "imu");
+        IMUparams = new IMU.Parameters(
+                new RevHubOrientationOnRobot(
+                        RevHubOrientationOnRobot.LogoFacingDirection.UP,
+                        RevHubOrientationOnRobot.UsbFacingDirection.RIGHT
+                )
+        );
+        controlIMU.initialize(IMUparams);
+
 
         // Servo Setup
         handServo = hardwareMap.get(Servo.class, "HAND");
@@ -63,6 +83,11 @@ public class TesseractTeleOp extends OpMode {
 
     @Override
     public void loop() {
+        // IMU Gyroscope
+        robotOrientation = controlIMU.getRobotYawPitchRollAngles();
+        double Yaw = robotOrientation.getYaw(AngleUnit.DEGREES);
+        double Pitch = robotOrientation.getPitch(AngleUnit.DEGREES);
+        double Roll = robotOrientation.getRoll(AngleUnit.DEGREES);
         // Buttons
         boolean AButton = gamepad1.a;
         boolean BButton = gamepad1.b;
@@ -73,7 +98,9 @@ public class TesseractTeleOp extends OpMode {
         float LJoyX = (float) (Math.pow(gamepad1.left_stick_x, 2) * Math.signum(gamepad1.left_stick_x));
         float LJoyY = (float) (Math.pow(gamepad1.left_stick_y, 2) * Math.signum(gamepad1.left_stick_y));
         float RJoyX = (float) (Math.pow(gamepad1.right_stick_x, 2) * Math.signum(gamepad1.right_stick_x));
-        double LJoyMag = Math.sqrt(Math.pow(LJoyX, 2) + Math.pow(LJoyY, 2));
+        // double LJoyMag = Math.sqrt(Math.pow(LJoyX, 2) + Math.pow(LJoyY, 2));
+        double XOffset = Math.cos(Yaw);
+        double YOffset = Math.sin(Yaw);
         // Motor Power
         double FLPower = -LJoyX + LJoyY - RJoyX;
         double FRPower = LJoyX + LJoyY + RJoyX;
@@ -152,6 +179,9 @@ public class TesseractTeleOp extends OpMode {
 
         }*/
 
+        telemetry.addData("Gyro Yaw:", Yaw);
+        telemetry.addData("Gyro Pitch:", Pitch);
+        telemetry.addData("Gyro Roll:", Roll);
         telemetry.addData("Gigachad Motor:", craneMotor.getCurrentPosition());
         telemetry.addData("FR", FRPower);
         telemetry.addData("FL", FLPower);
