@@ -24,8 +24,9 @@ public class TesseractTeleOp extends OpMode {
     public Servo handServo;
     final double ServoOpenPos = 0.85;
     final double ServoClosePos = 1.0;
-    final int CraneMax = 55000;
+    final int CraneMax = 61000;
     final int CraneMin = 0;
+    final int SlowPosition = 3000;
     boolean EncoderToggle = true;
 
     @Override
@@ -74,10 +75,10 @@ public class TesseractTeleOp extends OpMode {
         float RJoyX = (float) (Math.pow(gamepad1.right_stick_x, 2) * Math.signum(gamepad1.right_stick_x));
         double LJoyMag = Math.sqrt(Math.pow(LJoyX, 2) + Math.pow(LJoyY, 2));
         // Motor Power
-        double FLPower = LJoyX + LJoyY - RJoyX;
-        double FRPower = -LJoyX + LJoyY + RJoyX;
-        double RLPower = -LJoyX + LJoyY - RJoyX;
-        double RRPower = LJoyX + LJoyY + RJoyX;
+        double FLPower = -LJoyX + LJoyY - RJoyX;
+        double FRPower = LJoyX + LJoyY + RJoyX;
+        double RLPower = LJoyX + LJoyY - RJoyX;
+        double RRPower = -LJoyX + LJoyY + RJoyX;
 
         // Old Algorithm
         /*double FLPower = Math.sin(Math.atan2(LJoyX, LJoyY)+Math.PI/4)*LJoyMag+RJoyX;
@@ -108,7 +109,11 @@ public class TesseractTeleOp extends OpMode {
             }
         } else if (DPadDown && !(craneMotor.getCurrentPosition() < CraneMin)) {
             if (!(EncoderToggle) || !(craneMotor.getCurrentPosition() < CraneMin)) {
-                cranePower = 1;
+                if (craneMotor.getCurrentPosition() < SlowPosition) {
+                    cranePower = 0.2;
+                } else {
+                    cranePower = 0.5;
+                }
             }
         } else {
             cranePower = 0;
@@ -142,9 +147,10 @@ public class TesseractTeleOp extends OpMode {
         }
 
         // Encoder Reset
+        /*
         if (gamepad1.dpad_left && gamepad1.start && gamepad1.right_bumper && gamepad1.left_bumper) {
 
-        }
+        }*/
 
         telemetry.addData("Gigachad Motor:", craneMotor.getCurrentPosition());
         telemetry.addData("FR", FRPower);

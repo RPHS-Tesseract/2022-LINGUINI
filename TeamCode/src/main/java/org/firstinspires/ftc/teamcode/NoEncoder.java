@@ -21,5 +21,6 @@ public class NoEncoder extends OpMode {
     public void loop() {
         double JoyY = gamepad1.left_stick_y;
         craneMotor.setPower(JoyY);
+        telemetry.addData("Gigachad Motor:", craneMotor.getCurrentPosition());
     }
 }

@@ -7,8 +7,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import java.util.Arrays;
 import java.util.Collections;
 
-@Autonomous(name = "LeftAuto")
-public class LeftAuto extends LinearOpMode {
+@Autonomous(name = "MoveForwardAuto")
+public class MoveForwardAuto extends LinearOpMode {
     public DcMotor frontLeftMotor;
     public DcMotor frontRightMotor;
     public DcMotor rearLeftMotor;
@@ -30,33 +30,13 @@ public class LeftAuto extends LinearOpMode {
         craneMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         craneMotor.setDirection(DcMotor.Direction.REVERSE);
 
-        // Joysticks
-        float LJoyX = -1.0f;
-        float LJoyY = 0.0f;
-        float RJoyX = 0.0f;
-        double LJoyMag = Math.sqrt(Math.pow(LJoyX, 2) + Math.pow(LJoyY, 2));
-
-        // Motor Power
-        double FLPower = LJoyX + LJoyY - RJoyX;
-        double FRPower = -LJoyX + LJoyY + RJoyX;
-        double RLPower = -LJoyX + LJoyY - RJoyX;
-        double RRPower = LJoyX + LJoyY + RJoyX;
-
-        double largestPower = Collections.max(Arrays.asList(FLPower, FRPower, RLPower, RRPower, 1.0));
-
-        // Motor Power after scale down
-        double ScaledFLPower = FLPower / largestPower;
-        double ScaledFRPower = FRPower / largestPower;
-        double ScaledRLPower = RLPower / largestPower;
-        double ScaledRRPower = RRPower / largestPower;
-
         // Setting Motor Speeds
-        frontLeftMotor.setPower(ScaledFLPower); // Reversed Motor
-        frontRightMotor.setPower(ScaledFRPower);
-        rearLeftMotor.setPower(ScaledRLPower); // Reversed Motor
-        rearRightMotor.setPower(ScaledRRPower);
+        frontLeftMotor.setPower(1); // Reversed Motor
+        frontRightMotor.setPower(1);
+        rearLeftMotor.setPower(1); // Reversed Motor
+        rearRightMotor.setPower(1);
 
-        Thread.sleep(750);
+        Thread.sleep(1750);
         // Stop Everything
         frontLeftMotor.setPower(0); // Reversed Motor
         frontRightMotor.setPower(0);
