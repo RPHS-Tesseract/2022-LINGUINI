@@ -14,9 +14,11 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 
 @TeleOp(name = "Tesseract")
 public class TesseractTeleOp extends OpMode {
@@ -85,9 +87,9 @@ public class TesseractTeleOp extends OpMode {
     public void loop() {
         // IMU Gyroscope
         robotOrientation = controlIMU.getRobotYawPitchRollAngles();
-        double Yaw = robotOrientation.getYaw(AngleUnit.DEGREES);
-        double Pitch = robotOrientation.getPitch(AngleUnit.DEGREES);
-        double Roll = robotOrientation.getRoll(AngleUnit.DEGREES);
+        double Yaw = robotOrientation.getYaw(AngleUnit.RADIANS);
+        double Pitch = robotOrientation.getPitch(AngleUnit.RADIANS);
+        double Roll = robotOrientation.getRoll(AngleUnit.RADIANS);
         // Buttons
         boolean AButton = gamepad1.a;
         boolean BButton = gamepad1.b;
@@ -95,17 +97,25 @@ public class TesseractTeleOp extends OpMode {
         boolean DPadUp = gamepad1.dpad_up;
         boolean DPadDown = gamepad1.dpad_down;
         // Joysticks
-        float LJoyX = (float) (Math.pow(gamepad1.left_stick_x, 2) * Math.signum(gamepad1.left_stick_x));
-        float LJoyY = (float) (Math.pow(gamepad1.left_stick_y, 2) * Math.signum(gamepad1.left_stick_y));
-        float RJoyX = (float) (Math.pow(gamepad1.right_stick_x, 2) * Math.signum(gamepad1.right_stick_x));
-        // double LJoyMag = Math.sqrt(Math.pow(LJoyX, 2) + Math.pow(LJoyY, 2));
-        double XOffset = Math.cos(Yaw);
-        double YOffset = Math.sin(Yaw);
+        double LJoyX = (Math.pow(gamepad1.left_stick_x, 2) * Math.signum(gamepad1.left_stick_x));
+        double LJoyY = (Math.pow(gamepad1.left_stick_y, 2) * Math.signum(gamepad1.left_stick_y));
+        double RJoyX = (Math.pow(gamepad1.right_stick_x, 2) * Math.signum(gamepad1.right_stick_x));
+        double LJoyM = Math.sqrt(Math.pow(LJoyX, 2) + Math.pow(LJoyY, 2)); // Magnitude
+        double LJoyA = Math.atan2(LJoyY, LJoyX); // Angle in Radians
+        double OffsetA = LJoyA - Yaw; // Offset angle
+        double OffsetLJoyX = - Math.sin(OffsetA);
+        double OffsetLJoyY = Math.cos(OffsetA);
+
+        Vector2D LJoyVector = new Vector2D(
+                OffsetA,
+        )
+
+
         // Motor Power
-        double FLPower = -LJoyX + LJoyY - RJoyX;
-        double FRPower = LJoyX + LJoyY + RJoyX;
-        double RLPower = LJoyX + LJoyY - RJoyX;
-        double RRPower = -LJoyX + LJoyY + RJoyX;
+        double FLPower = -OffsetLJoyX + OffsetLJoyY - RJoyX;
+        double FRPower = OffsetLJoyX + OffsetLJoyY + RJoyX;
+        double RLPower = OffsetLJoyX + OffsetLJoyY - RJoyX;
+        double RRPower = -OffsetLJoyX + OffsetLJoyY + RJoyX;
 
         // Old Algorithm
         /*double FLPower = Math.sin(Math.atan2(LJoyX, LJoyY)+Math.PI/4)*LJoyMag+RJoyX;
@@ -126,7 +136,6 @@ public class TesseractTeleOp extends OpMode {
         frontRightMotor.setPower(ScaledFRPower);
         rearLeftMotor.setPower(ScaledRLPower); // Reversed Motor
         rearRightMotor.setPower(ScaledRRPower);
-
 
         // Crane Motor Speed
         double cranePower = 0;
