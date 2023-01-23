@@ -15,6 +15,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.apache.commons.math3.linear.ArrayRealVector;
+import org.apache.commons.math3.linear.RealVector;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
@@ -102,20 +104,26 @@ public class TesseractTeleOp extends OpMode {
         double RJoyX = (Math.pow(gamepad1.right_stick_x, 2) * Math.signum(gamepad1.right_stick_x));
         double LJoyM = Math.sqrt(Math.pow(LJoyX, 2) + Math.pow(LJoyY, 2)); // Magnitude
         double LJoyA = Math.atan2(LJoyY, LJoyX); // Angle in Radians
-        double OffsetA = LJoyA - Yaw; // Offset angle
-        double OffsetLJoyX = - Math.sin(OffsetA);
-        double OffsetLJoyY = Math.cos(OffsetA);
+        double RobotX = Math.sin(LJoyA);
+        double RobotY = Math.cos(LJoyA);
 
-        Vector2D LJoyVector = new Vector2D(
-                OffsetA,
-        )
-
+        RealVector LJoyVector = new ArrayRealVector(new double[] {LJoyX, LJoyY});
+        RealVector RobotVector = new ArrayRealVector(new double[] {RobotX, RobotY});
+        if (!(LJoyVector.getDistance(new ArrayRealVector(new double[] {0, 0})) == 0)) {
+            LJoyVector.unitize();
+        }
+        if (!(RobotVector.getDistance(new ArrayRealVector(new double[] {0, 0})) == 0)) {
+            RobotVector.unitize();
+        }
+        RealVector OffsetVector = LJoyVector.add(RobotVector);
+        double OffsetX = OffsetVector.getEntry(1);
+        double OffsetY = OffsetVector.getEntry(2);
 
         // Motor Power
-        double FLPower = -OffsetLJoyX + OffsetLJoyY - RJoyX;
-        double FRPower = OffsetLJoyX + OffsetLJoyY + RJoyX;
-        double RLPower = OffsetLJoyX + OffsetLJoyY - RJoyX;
-        double RRPower = -OffsetLJoyX + OffsetLJoyY + RJoyX;
+        double FLPower = -OffsetX + OffsetY - RJoyX;
+        double FRPower = OffsetX + OffsetY + RJoyX;
+        double RLPower = OffsetX + OffsetY - RJoyX;
+        double RRPower = -OffsetX + OffsetY + RJoyX;
 
         // Old Algorithm
         /*double FLPower = Math.sin(Math.atan2(LJoyX, LJoyY)+Math.PI/4)*LJoyMag+RJoyX;
@@ -188,13 +196,11 @@ public class TesseractTeleOp extends OpMode {
 
         }*/
 
-        telemetry.addData("Gyro Yaw:", Yaw);
-        telemetry.addData("Gyro Pitch:", Pitch);
-        telemetry.addData("Gyro Roll:", Roll);
+        telemetry.addData("Gyro:", "YAW: %.3f, PITCH: %.3f, ROLL: %.3f", Yaw, Pitch, Roll);
         telemetry.addData("Gigachad Motor:", craneMotor.getCurrentPosition());
-        telemetry.addData("FR", FRPower);
-        telemetry.addData("FL", FLPower);
-        telemetry.addData("RR", RRPower);
-        telemetry.addData("RL", RLPower);
+        telemetry.addData("FrontMotors: ","FL: %.3f, FR: %.3f",FLPower, FRPower);
+        telemetry.addData("RearMotors", "RL: %.3f, RR: %.3f", RLPower, RRPower);
+        telemetry.addData("FrontOffsetMotors: ","FL: %.3f, FR: %.3f",FLPower, FRPower);
+        telemetry.addData("RearOffsetMotors", "RL: %.3f, RR: %.3f", RLPower, RRPower);
     }
 }
