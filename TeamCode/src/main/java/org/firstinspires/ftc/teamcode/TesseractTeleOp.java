@@ -90,9 +90,12 @@ public class TesseractTeleOp extends OpMode {
     public void loop() {
         // IMU Gyroscope
         robotOrientation = controlIMU.getRobotYawPitchRollAngles();
-        double Yaw = robotOrientation.getYaw(AngleUnit.RADIANS);
-        double Pitch = robotOrientation.getPitch(AngleUnit.RADIANS);
-        double Roll = robotOrientation.getRoll(AngleUnit.RADIANS);
+        double OriginalYaw = robotOrientation.getYaw(AngleUnit.RADIANS);
+        double OriginalPitch = robotOrientation.getPitch(AngleUnit.RADIANS);
+        double OriginalRoll = robotOrientation.getRoll(AngleUnit.RADIANS);
+        double Yaw = robotOrientation.getYaw(AngleUnit.RADIANS) - OriginalYaw;
+        double Pitch = robotOrientation.getPitch(AngleUnit.RADIANS) - OriginalPitch;
+        double Roll = robotOrientation.getRoll(AngleUnit.RADIANS) - OriginalRoll;
         // Buttons
         boolean AButton = gamepad1.a;
         boolean BButton = gamepad1.b;
@@ -103,31 +106,24 @@ public class TesseractTeleOp extends OpMode {
         double LJoyX = (Math.pow(gamepad1.left_stick_x, 2) * Math.signum(gamepad1.left_stick_x));
         double LJoyY = (Math.pow(gamepad1.left_stick_y, 2) * Math.signum(gamepad1.left_stick_y));
         double RJoyX = (Math.pow(gamepad1.right_stick_x, 2) * Math.signum(gamepad1.right_stick_x));
-        double LJoyM = Math.sqrt(Math.pow(LJoyX, 2) + Math.pow(LJoyY, 2)); // Magnitude
-        double LJoyA = Math.atan2(LJoyY, LJoyX); // Angle in Radians
 
-        S1Point RobotAngle = new S1Point(Yaw);
-        Vector2D RobotVector = RobotAngle.getVector();
-        Vector2D LJoyVector = new Vector2D(LJoyX, LJoyY).normalize();
-        Vector2D OffsetVector = LJoyVector.add(RobotVector);
-        double OffsetX = OffsetVector.getX();
-        double OffsetY = OffsetVector.getY();
+        Vector2D LJoyVector = new Vector2D(LJoyX, LJoyY);
+        double LJoyM = LJoyVector.getNorm(); // Magnitude
+        double LJoyA = 0;
+        if (!(LJoyM == 0)) {
+            LJoyA = Vector2D.angle(Vector2D.ZERO, LJoyVector); // Angle in Radians
+        } else {
+            LJoyA = 0;
+        }
+        S1Point DriveAngle = new S1Point(Yaw + LJoyA);
+        VectorDrive(DriveAngle.getAlpha(), LJoyM, RJoyX);
 
-        /*if (!(LJoyVector.getDistance(new ArrayRealVector(new double[] {0, 0})) == 0)) {
-            LJoyVector.unitize();
-        }
-        if (!(RobotVector.getDistance(new ArrayRealVector(new double[] {0, 0})) == 0)) {
-            RobotVector.unitize();
-        }
-        RealVector OffsetVector = LJoyVector.add(RobotVector);
+        /*if (!(RobotVector.getDistance(new ArrayRealVector(new double[] {0, 0})) == 0)) {
+            RobotVector.normalize();
+        }*/
+        /*RealVector OffsetVector = LJoyVector.add(RobotVector);
         double OffsetX = OffsetVector.getEntry(1);
         double OffsetY = OffsetVector.getEntry(2);*/
-
-        // Motor Power
-        double FLPower = -OffsetX + OffsetY - RJoyX;
-        double FRPower = OffsetX + OffsetY + RJoyX;
-        double RLPower = OffsetX + OffsetY - RJoyX;
-        double RRPower = -OffsetX + OffsetY + RJoyX;
 
         // Old Algorithm
         /*double FLPower = Math.sin(Math.atan2(LJoyX, LJoyY)+Math.PI/4)*LJoyMag+RJoyX;
@@ -135,19 +131,6 @@ public class TesseractTeleOp extends OpMode {
         double RLPower = Math.cos(Math.atan2(LJoyX, LJoyY)+Math.PI/4)*LJoyMag+RJoyX;
         double RRPower = Math.sin(Math.atan2(LJoyX, LJoyY)+Math.PI/4)*LJoyMag-RJoyX;*/
 
-        double largestPower = Collections.max(Arrays.asList(FLPower, FRPower, RLPower, RRPower, 1.0));
-
-        // Motor Power after scale down
-        double ScaledFLPower = FLPower / largestPower;
-        double ScaledFRPower = FRPower / largestPower;
-        double ScaledRLPower = RLPower / largestPower;
-        double ScaledRRPower = RRPower / largestPower;
-
-        // Setting Motor Speeds
-        frontLeftMotor.setPower(ScaledFLPower); // Reversed Motor
-        frontRightMotor.setPower(ScaledFRPower);
-        rearLeftMotor.setPower(ScaledRLPower); // Reversed Motor
-        rearRightMotor.setPower(ScaledRRPower);
 
         // Crane Motor Speed
         double cranePower = 0;
@@ -200,11 +183,44 @@ public class TesseractTeleOp extends OpMode {
 
         }*/
 
+        telemetry.addData("LJoy Angle", LJoyA);
+        telemetry.addData("LJoy Magnitude:", LJoyM);
+        telemetry.addData("Original Gyro:", "YAW: %.3f, PITCH: %.3f, ROLL: %.3f", Yaw, Pitch, Roll);
         telemetry.addData("Gyro:", "YAW: %.3f, PITCH: %.3f, ROLL: %.3f", Yaw, Pitch, Roll);
-        telemetry.addData("Gigachad Motor:", craneMotor.getCurrentPosition());
-        telemetry.addData("FrontMotors: ","FL: %.3f, FR: %.3f",FLPower, FRPower);
-        telemetry.addData("RearMotors", "RL: %.3f, RR: %.3f", RLPower, RRPower);
-        telemetry.addData("FrontOffsetMotors: ","FL: %.3f, FR: %.3f",FLPower, FRPower);
-        telemetry.addData("RearOffsetMotors", "RL: %.3f, RR: %.3f", RLPower, RRPower);
+        telemetry.addData("Crane Motor:", craneMotor.getCurrentPosition());
+    }
+    private void VectorDrive(double Angle, double Mag, double RJoyX) {
+        if (Mag == 0) {
+            return;
+        }
+
+        S1Point OffsetPoint = new S1Point(Angle);
+        Vector2D OffsetVector = OffsetPoint.getVector().scalarMultiply(Mag);
+        double OffsetX = OffsetVector.getX();
+        double OffsetY = OffsetVector.getY();
+
+        // Motor Power
+        double FLPower = -OffsetX + OffsetY - RJoyX;
+        double FRPower = OffsetX + OffsetY + RJoyX;
+        double RLPower = OffsetX + OffsetY - RJoyX;
+        double RRPower = -OffsetX + OffsetY + RJoyX;
+        double largestPower = Collections.max(Arrays.asList(FLPower, FRPower, RLPower, RRPower, 1.0));
+
+        // Motor Power after scale down
+        double ScaledFLPower = FLPower / largestPower;
+        double ScaledFRPower = FRPower / largestPower;
+        double ScaledRLPower = RLPower / largestPower;
+        double ScaledRRPower = RRPower / largestPower;
+
+        // Setting Motor Speeds
+        frontLeftMotor.setPower(ScaledFLPower); // Reversed Motor
+        frontRightMotor.setPower(ScaledFRPower);
+        rearLeftMotor.setPower(ScaledRLPower); // Reversed Motor
+        rearRightMotor.setPower(ScaledRRPower);
+
+        telemetry.addData("Front Motors: ","FL: %.3f, FR: %.3f",FLPower, FRPower);
+        telemetry.addData("Rear Motors", "RL: %.3f, RR: %.3f", RLPower, RRPower);
+        telemetry.addData("Front Offset Motors: ","FL: %.3f, FR: %.3f",FLPower, FRPower);
+        telemetry.addData("Rear Offset Motors", "RL: %.3f, RR: %.3f", RLPower, RRPower);
     }
 }
