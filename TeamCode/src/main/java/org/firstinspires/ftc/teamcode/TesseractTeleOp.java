@@ -17,6 +17,7 @@ import com.qualcomm.robotcore.util.Range;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealVector;
+import org.apache.commons.math3.geometry.spherical.oned.S1Point;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
@@ -104,12 +105,15 @@ public class TesseractTeleOp extends OpMode {
         double RJoyX = (Math.pow(gamepad1.right_stick_x, 2) * Math.signum(gamepad1.right_stick_x));
         double LJoyM = Math.sqrt(Math.pow(LJoyX, 2) + Math.pow(LJoyY, 2)); // Magnitude
         double LJoyA = Math.atan2(LJoyY, LJoyX); // Angle in Radians
-        double RobotX = Math.sin(LJoyA);
-        double RobotY = Math.cos(LJoyA);
 
-        RealVector LJoyVector = new ArrayRealVector(new double[] {LJoyX, LJoyY});
-        RealVector RobotVector = new ArrayRealVector(new double[] {RobotX, RobotY});
-        if (!(LJoyVector.getDistance(new ArrayRealVector(new double[] {0, 0})) == 0)) {
+        S1Point RobotAngle = new S1Point(Yaw);
+        Vector2D RobotVector = RobotAngle.getVector();
+        Vector2D LJoyVector = new Vector2D(LJoyX, LJoyY).normalize();
+        Vector2D OffsetVector = LJoyVector.add(RobotVector);
+        double OffsetX = OffsetVector.getX();
+        double OffsetY = OffsetVector.getY();
+
+        /*if (!(LJoyVector.getDistance(new ArrayRealVector(new double[] {0, 0})) == 0)) {
             LJoyVector.unitize();
         }
         if (!(RobotVector.getDistance(new ArrayRealVector(new double[] {0, 0})) == 0)) {
@@ -117,7 +121,7 @@ public class TesseractTeleOp extends OpMode {
         }
         RealVector OffsetVector = LJoyVector.add(RobotVector);
         double OffsetX = OffsetVector.getEntry(1);
-        double OffsetY = OffsetVector.getEntry(2);
+        double OffsetY = OffsetVector.getEntry(2);*/
 
         // Motor Power
         double FLPower = -OffsetX + OffsetY - RJoyX;
