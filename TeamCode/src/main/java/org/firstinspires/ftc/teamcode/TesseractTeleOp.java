@@ -42,6 +42,9 @@ public class TesseractTeleOp extends OpMode {
     final int CraneMin = 0;
     final int SlowPosition = 3000;
     boolean EncoderToggle = true;
+    double OriginalYaw = 0;
+    double OriginalPitch = 0;
+    double OriginalRoll = 0;
 
     @Override
     public void init() {
@@ -61,7 +64,7 @@ public class TesseractTeleOp extends OpMode {
                 )
         );
         controlIMU.initialize(IMUparams);
-
+        controlIMU.resetYaw();
 
         // Servo Setup
         handServo = hardwareMap.get(Servo.class, "HAND");
@@ -90,12 +93,9 @@ public class TesseractTeleOp extends OpMode {
     public void loop() {
         // IMU Gyroscope
         robotOrientation = controlIMU.getRobotYawPitchRollAngles();
-        double OriginalYaw = robotOrientation.getYaw(AngleUnit.RADIANS);
-        double OriginalPitch = robotOrientation.getPitch(AngleUnit.RADIANS);
-        double OriginalRoll = robotOrientation.getRoll(AngleUnit.RADIANS);
-        double Yaw = robotOrientation.getYaw(AngleUnit.RADIANS) - OriginalYaw;
-        double Pitch = robotOrientation.getPitch(AngleUnit.RADIANS) - OriginalPitch;
-        double Roll = robotOrientation.getRoll(AngleUnit.RADIANS) - OriginalRoll;
+        double Yaw = robotOrientation.getYaw(AngleUnit.RADIANS);
+        double Pitch = robotOrientation.getPitch(AngleUnit.RADIANS);
+        double Roll = robotOrientation.getRoll(AngleUnit.RADIANS);
         // Buttons
         boolean AButton = gamepad1.a;
         boolean BButton = gamepad1.b;
@@ -110,13 +110,14 @@ public class TesseractTeleOp extends OpMode {
         Vector2D LJoyVector = new Vector2D(LJoyX, LJoyY);
         double LJoyM = LJoyVector.getNorm(); // Magnitude
         double LJoyA = 0;
+
         if (!(LJoyM == 0)) {
-            LJoyA = Vector2D.angle(Vector2D.ZERO, LJoyVector); // Angle in Radians
+            LJoyA = Vector2D.angle(new Vector2D(0, 1) , LJoyVector); // Angle in Radians
         } else {
             LJoyA = 0;
         }
         S1Point DriveAngle = new S1Point(Yaw + LJoyA);
-        VectorDrive(DriveAngle.getAlpha(), LJoyM, RJoyX);
+        VectorDrive(Yaw, LJoyX, LJoyY, RJoyX);
 
         /*if (!(RobotVector.getDistance(new ArrayRealVector(new double[] {0, 0})) == 0)) {
             RobotVector.normalize();
@@ -189,15 +190,11 @@ public class TesseractTeleOp extends OpMode {
         telemetry.addData("Gyro:", "YAW: %.3f, PITCH: %.3f, ROLL: %.3f", Yaw, Pitch, Roll);
         telemetry.addData("Crane Motor:", craneMotor.getCurrentPosition());
     }
-    private void VectorDrive(double Angle, double Mag, double RJoyX) {
-        if (Mag == 0) {
-            return;
-        }
-
-        S1Point OffsetPoint = new S1Point(Angle);
-        Vector2D OffsetVector = OffsetPoint.getVector().scalarMultiply(Mag);
-        double OffsetX = OffsetVector.getX();
-        double OffsetY = OffsetVector.getY();
+    private void VectorDrive(double Angle, double LJoyX, double LJoyY, double RJoyX) {
+        // S1Point OffsetPoint = new S1Point(Angle);
+        // Vector2D OffsetVector = OffsetPoint.getVector().scalarMultiply(Mag);
+        double OffsetX = Math.cos(Angle)*LJoyX - Math.sin(Angle)*LJoyY;
+        double OffsetY = Math.sin(Angle)*LJoyX + Math.cos(Angle)*LJoyY;
 
         // Motor Power
         double FLPower = -OffsetX + OffsetY - RJoyX;
