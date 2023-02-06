@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -22,6 +23,11 @@ public class MoveForwardAuto extends LinearOpMode {
         rearLeftMotor = hardwareMap.get(DcMotor.class, "RL");
         rearRightMotor = hardwareMap.get(DcMotor.class, "RR");
         craneMotor = hardwareMap.get(DcMotor.class, "CRANE");
+
+        frontRightMotor.setDirection(DcMotor.Direction.FORWARD);
+        rearRightMotor.setDirection(DcMotor.Direction.FORWARD);
+        frontLeftMotor.setDirection(DcMotor.Direction.REVERSE);
+        rearLeftMotor.setDirection(DcMotor.Direction.REVERSE);
 
         frontLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);

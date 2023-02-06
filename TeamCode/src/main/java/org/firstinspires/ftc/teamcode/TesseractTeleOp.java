@@ -5,14 +5,16 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.OpModeInternal;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.util.Range;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.apache.commons.math3.linear.ArrayRealVector;
@@ -23,8 +25,13 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 
+
+import org.firstinspires.ftc.teamcode.config.TesseractConfig;
+
 @TeleOp(name = "Tesseract")
 public class TesseractTeleOp extends OpMode {
+    public FtcDashboard dashboard = FtcDashboard.getInstance();
+    public MultipleTelemetry telemetry;
     // Motors
     public DcMotor frontLeftMotor;
     public DcMotor frontRightMotor;
@@ -45,15 +52,24 @@ public class TesseractTeleOp extends OpMode {
     double OriginalYaw = 0;
     double OriginalPitch = 0;
     double OriginalRoll = 0;
+    boolean GyroEnabled = true;
+    ElapsedTime time;
+    double oldTime = 0;
+    double craneReference = 0;
+    double craneIntegral = 0;
+    double craneLastError = 0;
 
     @Override
     public void init() {
+        time = new ElapsedTime();
         // Motor Setup
         frontLeftMotor = hardwareMap.get(DcMotor.class, "FL");
         frontRightMotor = hardwareMap.get(DcMotor.class, "FR");
         rearLeftMotor = hardwareMap.get(DcMotor.class, "RL");
         rearRightMotor = hardwareMap.get(DcMotor.class, "RR");
         craneMotor = hardwareMap.get(DcMotor.class, "CRANE");
+
+        telemetry = new MultipleTelemetry(dashboard.getTelemetry(), super.telemetry);
 
         // IMU Setup
         controlIMU = hardwareMap.get(IMU.class, "imu");
@@ -79,6 +95,7 @@ public class TesseractTeleOp extends OpMode {
 
         craneMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         craneMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        craneReference = craneMotor.getCurrentPosition();
 
         frontRightMotor.setDirection(DcMotor.Direction.REVERSE);
         rearRightMotor.setDirection(DcMotor.Direction.REVERSE);
@@ -91,6 +108,13 @@ public class TesseractTeleOp extends OpMode {
 
     @Override
     public void loop() {
+        if (gamepad1.x && gamepad1.y && gamepad1.dpad_left) { // Gyro Control Loop Toggle
+            if (oldTime + 1000 > time.milliseconds()) {
+                oldTime = time.milliseconds();
+                GyroEnabled = !GyroEnabled;
+            }
+        }
+
         // IMU Gyroscope
         robotOrientation = controlIMU.getRobotYawPitchRollAngles();
         double Yaw = robotOrientation.getYaw(AngleUnit.RADIANS);
@@ -116,8 +140,14 @@ public class TesseractTeleOp extends OpMode {
         } else {
             LJoyA = 0;
         }
+
+        double craneError = craneReference - craneMotor.getCurrentPosition();
+        craneIntegral = craneIntegral + (craneError * time.milliseconds());
+        double craneDerivative = (craneError - craneLastError) / time.milliseconds();
+        double craneOutput = (TesseractConfig.kP * craneError) + (TesseractConfig.kI * craneIntegral) + (TesseractConfig.kD * craneDerivative);
+        craneLastError = craneError;
         S1Point DriveAngle = new S1Point(Yaw + LJoyA);
-        VectorDrive(Yaw, LJoyX, LJoyY, RJoyX);
+        VectorDrive(GyroEnabled ? Yaw : 0, LJoyX, LJoyY, RJoyX);
 
         /*if (!(RobotVector.getDistance(new ArrayRealVector(new double[] {0, 0})) == 0)) {
             RobotVector.normalize();
@@ -189,6 +219,14 @@ public class TesseractTeleOp extends OpMode {
         telemetry.addData("Original Gyro:", "YAW: %.3f, PITCH: %.3f, ROLL: %.3f", Yaw, Pitch, Roll);
         telemetry.addData("Gyro:", "YAW: %.3f, PITCH: %.3f, ROLL: %.3f", Yaw, Pitch, Roll);
         telemetry.addData("Crane Motor:", craneMotor.getCurrentPosition());
+
+        telemetry.addData(
+                "PID: ",
+                "kP: %.3f, kI: %.3f, kD: %.3f",
+                TesseractConfig.kP,
+                TesseractConfig.kI,
+                TesseractConfig.kD
+        );
     }
     private void VectorDrive(double Angle, double LJoyX, double LJoyY, double RJoyX) {
         // S1Point OffsetPoint = new S1Point(Angle);
