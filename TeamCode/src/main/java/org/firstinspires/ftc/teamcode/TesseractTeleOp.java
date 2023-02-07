@@ -31,7 +31,6 @@ import org.firstinspires.ftc.teamcode.config.TesseractConfig;
 @TeleOp(name = "Tesseract")
 public class TesseractTeleOp extends OpMode {
     public FtcDashboard dashboard = FtcDashboard.getInstance();
-    public MultipleTelemetry telemetry;
     // Motors
     public DcMotor frontLeftMotor;
     public DcMotor frontRightMotor;
