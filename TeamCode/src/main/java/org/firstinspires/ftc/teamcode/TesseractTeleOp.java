@@ -83,8 +83,8 @@ public class TesseractTeleOp extends OpMode {
         controlIMU = hardwareMap.get(IMU.class, "imu");
         IMUparams = new IMU.Parameters(
                 new RevHubOrientationOnRobot(
-                        RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                        RevHubOrientationOnRobot.UsbFacingDirection.RIGHT
+                        RevHubOrientationOnRobot.LogoFacingDirection.RIGHT,
+                        RevHubOrientationOnRobot.UsbFacingDirection.UP
                 )
         );
         controlIMU.initialize(IMUparams);
