@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.config.TesseractConfig;
 
-@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Autonomous")
+@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "RightHighConeAuto")
 public class RightHighConeAuto extends LinearOpMode {
     public DcMotor frontLeftMotor;
     public DcMotor frontRightMotor;

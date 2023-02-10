@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
-@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Autonomous")
+@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "LeftParkAuto")
 public class LeftParkAuto extends LinearOpMode {
     public DcMotor frontLeftMotor;
     public DcMotor frontRightMotor;

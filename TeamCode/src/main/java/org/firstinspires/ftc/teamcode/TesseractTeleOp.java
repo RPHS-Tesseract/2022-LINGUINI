@@ -43,7 +43,7 @@ public class TesseractTeleOp extends OpMode {
     public YawPitchRollAngles robotOrientation;
     // Servos
     public Servo handServo;
-    final double ServoOpenPos = 0.85;
+    final double ServoOpenPos = 0.25;
     final double ServoClosePos = 1.0;
     final int CraneMax = 61000;
     final int CraneMin = 0;
@@ -69,6 +69,7 @@ public class TesseractTeleOp extends OpMode {
     @Override
     public void init() {
         time = new ElapsedTime();
+        oldTime = time.milliseconds();
         // Motor Setup
         frontLeftMotor = hardwareMap.get(DcMotor.class, "FL");
         frontRightMotor = hardwareMap.get(DcMotor.class, "FR");
@@ -125,11 +126,11 @@ public class TesseractTeleOp extends OpMode {
 
     @Override
     public void loop() {
-        if (gamepad1.x && gamepad1.y && gamepad1.dpad_left) { // Gyro Control Loop Toggle
-            if (oldTime + 1000 > time.milliseconds()) {
+        if (gamepad1.x) { // Gyro Control Loop Toggle
+            //if (oldTime + 1000 > time.milliseconds()) {
                 oldTime = time.milliseconds();
                 GyroEnabled = !GyroEnabled;
-            }
+            //}
         }
 
         // IMU Gyroscope
@@ -177,13 +178,13 @@ public class TesseractTeleOp extends OpMode {
 
         // Crane Motor Speed
         // double cranePower = 0;
-        if (DPadUp && !(leftCraneMotor.getCurrentPosition() > CraneMax)) {
+        if (DPadUp /*&& !(leftCraneMotor.getCurrentPosition() > CraneMax)*/) {
             if (!(EncoderToggle) || !(leftCraneMotor.getCurrentPosition() > CraneMax)) {
                 // Go upwards
                 leftCranePosition += craneSpeed;
                 rightCranePosition += craneSpeed;
             }
-        } else if (DPadDown && !(leftCraneMotor.getCurrentPosition() < CraneMin)) {
+        } else if (DPadDown /*&& !(leftCraneMotor.getCurrentPosition() < CraneMin)*/) {
             if (!(EncoderToggle) || !(leftCraneMotor.getCurrentPosition() < CraneMin)) {
                // Go downwards
                 leftCranePosition -= craneSpeed;
@@ -243,10 +244,11 @@ public class TesseractTeleOp extends OpMode {
 
         }*/
 
-        telemetry.addData("LJoy Angle", LJoyA);
-        telemetry.addData("LJoy Magnitude:", LJoyM);
-        telemetry.addData("Original Gyro:", "YAW: %.3f, PITCH: %.3f, ROLL: %.3f", Yaw, Pitch, Roll);
-        telemetry.addData("Gyro:", "YAW: %.3f, PITCH: %.3f, ROLL: %.3f", Yaw, Pitch, Roll);
+        telemetry.addData("LJoy Angle ", LJoyA);
+        telemetry.addData("LJoy Magnitude:" , LJoyM);
+        telemetry.addData("Original Gyro: ", "YAW: %.3f, PITCH: %.3f, ROLL: %.3f", Yaw, Pitch, Roll);
+        telemetry.addData("Gyro: ", "YAW: %.3f, PITCH: %.3f, ROLL: %.3f", Yaw, Pitch, Roll);
+        telemetry.addData("Gyro Drive: ", GyroEnabled);
         telemetry.addData("Crane Motor:", leftCraneMotor.getCurrentPosition());
 
         telemetry.addData(
@@ -257,6 +259,16 @@ public class TesseractTeleOp extends OpMode {
                 TesseractConfig.kD
         );
     }
+    /*private void PIDTo(double Target, double Time, double Reference, double Integral, double  double kP, double kI, double kD) {
+        Time = time.milliseconds() - craneOldTime;
+        double Error = leftCraneReference - leftCraneMotor.getCurrentPosition();
+        leftCraneIntegral = leftCraneIntegral + (Error * craneOldTime);
+        double leftCraneDerivative = (Error - leftCraneLastError) / craneOldTime;
+        double leftCraneOutput = (kP * Error) + (kI * leftCraneIntegral) + (kD * leftCraneDerivative);
+        leftCraneMotor.setPower(leftCraneOutput);
+        leftCraneLastError = Error;
+    }*/
+
     private void VectorDrive(double Angle, double LJoyX, double LJoyY, double RJoyX) {
         // S1Point OffsetPoint = new S1Point(Angle);
         // Vector2D OffsetVector = OffsetPoint.getVector().scalarMultiply(Mag);
