@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.config.TesseractConfig;
@@ -14,6 +15,7 @@ public class RightHighConeAuto extends LinearOpMode {
     public DcMotor rearRightMotor;
     public DcMotor leftCraneMotor;
     public DcMotor rightCraneMotor;
+    public Servo handServo;
 
     ElapsedTime time;
     double craneOldTime = 0;
@@ -35,6 +37,7 @@ public class RightHighConeAuto extends LinearOpMode {
         rearRightMotor = hardwareMap.get(DcMotor.class, "RR");
         leftCraneMotor = hardwareMap.get(DcMotor.class, "LCRANE");
         rightCraneMotor = hardwareMap.get(DcMotor.class, "RCRANE");
+        handServo = hardwareMap.get(Servo.class, "HAND");
 
         frontRightMotor.setDirection(DcMotor.Direction.FORWARD);
         rearRightMotor.setDirection(DcMotor.Direction.FORWARD);
@@ -51,6 +54,7 @@ public class RightHighConeAuto extends LinearOpMode {
         rightCraneMotor.setDirection(DcMotor.Direction.FORWARD);
 
         // Movement
+        handServo.setPosition(1);
 
         // Move to in between the Back High Pole and the Right High Pole
         frontLeftMotor.setPower(0.25); // Reversed Motor
@@ -101,5 +105,38 @@ public class RightHighConeAuto extends LinearOpMode {
 
             craneOldTime = time.milliseconds();
         }
+
+        Thread.sleep(500);
+
+        handServo.setPosition(0);
+
+        Thread.sleep(500);
+        // Go back to the left
+        frontLeftMotor.setPower(0.25); // Reversed Motor
+        frontRightMotor.setPower(-0.25);
+        rearLeftMotor.setPower(-0.25); // Reversed Motor
+        rearRightMotor.setPower(0.25);
+
+        Thread.sleep(500);
+        // Stop Everything
+        frontLeftMotor.setPower(0); // Reversed Motor
+        frontRightMotor.setPower(0);
+        rearLeftMotor.setPower(0); // Reversed Motor
+        rearRightMotor.setPower(0);
+
+        Thread.sleep(500);
+
+        // Go back to the starting tile
+        frontLeftMotor.setPower(-0.25); // Reversed Motor
+        frontRightMotor.setPower(-0.25);
+        rearLeftMotor.setPower(-0.25); // Reversed Motor
+        rearRightMotor.setPower(-0.25);
+
+        Thread.sleep(500);
+        // Stop Everything
+        frontLeftMotor.setPower(0); // Reversed Motor
+        frontRightMotor.setPower(0);
+        rearLeftMotor.setPower(0); // Reversed Motor
+        rearRightMotor.setPower(0);
     }
 }
