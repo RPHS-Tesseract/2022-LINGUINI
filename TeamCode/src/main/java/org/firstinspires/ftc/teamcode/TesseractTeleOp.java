@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode;
 
 import java.lang.*;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 
 import com.acmerobotics.dashboard.FtcDashboard;
@@ -11,25 +10,21 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
-import org.apache.commons.math3.linear.ArrayRealVector;
-import org.apache.commons.math3.linear.RealVector;
 import org.apache.commons.math3.geometry.spherical.oned.S1Point;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
-import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 
 
 import org.firstinspires.ftc.teamcode.config.TesseractConfig;
 
 @TeleOp(name = "Tesseract")
 public class TesseractTeleOp extends OpMode {
+    PIDHandler PID = new PIDHandler();
     public FtcDashboard dashboard = FtcDashboard.getInstance();
     // Motors
     public DcMotor frontLeftMotor;
@@ -43,7 +38,7 @@ public class TesseractTeleOp extends OpMode {
     public YawPitchRollAngles robotOrientation;
     // Servos
     public Servo handServo;
-    final double ServoOpenPos = 0.25;
+    final double ServoOpenPos = 0.25; // Tune this later; keeps breaking the claw from opening too much
     final double ServoClosePos = 1.0;
     final int CraneMax = 61000;
     final int CraneMin = 0;
@@ -52,10 +47,10 @@ public class TesseractTeleOp extends OpMode {
     double OriginalYaw = 0;
     double OriginalPitch = 0;
     double OriginalRoll = 0;
-    boolean GyroEnabled = true;
     ElapsedTime time;
     double oldTime = 0;
-    double craneOldTime = 0;
+    double leftCraneOldTime = 0;
+    double rightCraneOldTime = 0;
     double leftCraneReference = 0;
     double leftCraneIntegral = 0;
     double leftCraneLastError = 0;
@@ -65,6 +60,10 @@ public class TesseractTeleOp extends OpMode {
     double rightCraneLastError = 0;
     double rightCranePosition = 0;
     double craneSpeed = 1;
+    boolean PIDEnabled = true; // Toggle PID
+    boolean GyroEnabled = true; // Toggle Gyro Drive
+    boolean PIDClass = true; // True: Try to use the PIDHandler file i added; will probably break everything more than it already is lol
+    double vbucks = 0;
 
     @Override
     public void init() {
@@ -126,13 +125,8 @@ public class TesseractTeleOp extends OpMode {
 
     @Override
     public void loop() {
-        if (gamepad1.x) { // Gyro Control Loop Toggle
-            //if (oldTime + 1000 > time.milliseconds()) {
-                oldTime = time.milliseconds();
-                GyroEnabled = !GyroEnabled;
-            //}
-        }
-
+        leftCraneReference = leftCraneMotor.getCurrentPosition();
+        rightCraneReference = rightCraneMotor.getCurrentPosition();
         // IMU Gyroscope
         robotOrientation = controlIMU.getRobotYawPitchRollAngles();
         double Yaw = robotOrientation.getYaw(AngleUnit.RADIANS);
@@ -178,13 +172,13 @@ public class TesseractTeleOp extends OpMode {
 
         // Crane Motor Speed
         // double cranePower = 0;
-        if (DPadUp /*&& !(leftCraneMotor.getCurrentPosition() > CraneMax)*/) {
+        if (DPadUp && !(leftCraneMotor.getCurrentPosition() > CraneMax)) {
             if (!(EncoderToggle) || !(leftCraneMotor.getCurrentPosition() > CraneMax)) {
                 // Go upwards
                 leftCranePosition += craneSpeed;
                 rightCranePosition += craneSpeed;
             }
-        } else if (DPadDown /*&& !(leftCraneMotor.getCurrentPosition() < CraneMin)*/) {
+        } else if (DPadDown && !(leftCraneMotor.getCurrentPosition() < CraneMin)) {
             if (!(EncoderToggle) || !(leftCraneMotor.getCurrentPosition() < CraneMin)) {
                // Go downwards
                 leftCranePosition -= craneSpeed;
@@ -192,24 +186,65 @@ public class TesseractTeleOp extends OpMode {
             }
         }
 
-        // Left Crane PID Controller
-        craneOldTime = time.milliseconds() - craneOldTime;
-        double leftCraneError = leftCraneReference - leftCraneMotor.getCurrentPosition();
-        leftCraneIntegral = leftCraneIntegral + (leftCraneError * craneOldTime);
-        double leftCraneDerivative = (leftCraneError - leftCraneLastError) / craneOldTime;
-        double leftCraneOutput = (TesseractConfig.kP * leftCraneError) + (TesseractConfig.kI * leftCraneIntegral) + (TesseractConfig.kD * leftCraneDerivative);
-        leftCraneMotor.setPower(leftCraneOutput);
-        leftCraneLastError = leftCraneError;
+        if (PIDEnabled) {
+            if (PIDClass) {
+                leftCraneMotor.setPower(PID.PIDTO(
+                        leftCranePosition,
+                        time.milliseconds(),
+                        leftCraneOldTime,
+                        leftCraneReference,
+                        leftCraneIntegral,
+                        leftCraneLastError,
+                        TesseractConfig.kP,
+                        TesseractConfig.kI,
+                        TesseractConfig.kD
+                ));
+                rightCraneMotor.setPower(PID.PIDTO(
+                        rightCranePosition,
+                        time.milliseconds(),
+                        rightCraneOldTime,
+                        rightCraneReference,
+                        rightCraneIntegral,
+                        rightCraneLastError,
+                        TesseractConfig.kP,
+                        TesseractConfig.kI,
+                        TesseractConfig.kD
+                ));
+            } else {
+                // Left Crane PID Controller
+                leftCraneOldTime = time.milliseconds() - leftCraneOldTime;
+                double leftCraneError = leftCraneReference - leftCraneMotor.getCurrentPosition();
+                leftCraneIntegral = leftCraneIntegral + (leftCraneError * leftCraneOldTime);
+                double leftCraneDerivative = (leftCraneError - leftCraneLastError) / leftCraneOldTime;
+                double leftCraneOutput = (TesseractConfig.kP * leftCraneError) + (TesseractConfig.kI * leftCraneIntegral) + (TesseractConfig.kD * leftCraneDerivative);
+                leftCraneMotor.setPower(leftCraneOutput);
+                leftCraneLastError = leftCraneError;
 
-        // Right Crane PID Controller
-        double rightCraneError = rightCraneReference - rightCraneMotor.getCurrentPosition();
-        rightCraneIntegral = rightCraneIntegral + (rightCraneError * craneOldTime);
-        double rightCraneDerivative = (rightCraneError - rightCraneLastError) / craneOldTime;
-        double rightCraneOutput = (TesseractConfig.kP * rightCraneError) + (TesseractConfig.kI * rightCraneIntegral) + (TesseractConfig.kD * rightCraneDerivative);
-        rightCraneMotor.setPower(rightCraneOutput);
-        rightCraneLastError = rightCraneError;
+                // Right Crane PID Controller
+                double rightCraneError = rightCraneReference - rightCraneMotor.getCurrentPosition();
+                rightCraneIntegral = rightCraneIntegral + (rightCraneError * rightCraneOldTime);
+                double rightCraneDerivative = (rightCraneError - rightCraneLastError) / rightCraneOldTime;
+                double rightCraneOutput = (TesseractConfig.kP * rightCraneError) + (TesseractConfig.kI * rightCraneIntegral) + (TesseractConfig.kD * rightCraneDerivative);
+                rightCraneMotor.setPower(rightCraneOutput);
+                rightCraneLastError = rightCraneError;
 
-        craneOldTime = time.milliseconds();
+                rightCraneOldTime = time.milliseconds();
+            }
+        } else {
+            if (DPadDown && leftCraneMotor.getCurrentPosition() > CraneMin) {
+                leftCraneMotor.setPower(-1.0);
+                rightCraneMotor.setPower(-1.0);
+            }
+            else if (DPadUp && leftCraneMotor.getCurrentPosition() < CraneMax) {
+                leftCraneMotor.setPower(1.0);
+                rightCraneMotor.setPower(1.0);
+            }
+            else {
+                leftCraneMotor.setPower(0.0);
+                rightCraneMotor.setPower(0.0);
+            }
+        }
+
 
         /*
         if (craneMotor.getCurrentPosition() > CraneMax || craneMotor.getCurrentPosition() < CraneMin) {
@@ -218,17 +253,6 @@ public class TesseractTeleOp extends OpMode {
         */
 
         // craneMotor.setPower(cranePower);
-
-        /*if (DPadDown && craneMotor.getCurrentPosition() > CraneMin) {
-            craneMotor.setPower(-1.0);
-        }
-        else if (DPadUp && craneMotor.getCurrentPosition() < CraneMax) {
-            craneMotor.setPower(1.0);
-        }
-        else {
-            craneMotor.setPower(0.0);
-        }*/
-
 
         // Setting Servo Speed
         if (AButton) {
