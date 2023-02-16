@@ -24,7 +24,6 @@ import org.firstinspires.ftc.teamcode.config.TesseractConfig;
 
 @TeleOp(name = "Tesseract")
 public class TesseractTeleOp extends OpMode {
-    PIDHandler PID = new PIDHandler();
     public FtcDashboard dashboard = FtcDashboard.getInstance();
     // Motors
     public DcMotor frontLeftMotor;
@@ -38,8 +37,9 @@ public class TesseractTeleOp extends OpMode {
     public YawPitchRollAngles robotOrientation;
     // Servos
     public Servo handServo;
-    final double ServoOpenPos = 0.25; // Tune this later; keeps breaking the claw from opening too much
-    final double ServoClosePos = 1.0;
+    public Servo wristServo;
+    //final double ServoOpenPos = 0.9; // Tune this later; keeps breaking the claw from opening too much
+    //final double ServoClosePos = 1.0;
     final int CraneMax = 61000;
     final int CraneMin = 0;
     final int SlowPosition = 3000;
@@ -59,11 +59,11 @@ public class TesseractTeleOp extends OpMode {
     double rightCraneIntegral = 0;
     double rightCraneLastError = 0;
     double rightCranePosition = 0;
-    double craneSpeed = 1;
-    boolean PIDEnabled = true; // Toggle PID
-    boolean GyroEnabled = true; // Toggle Gyro Drive
-    boolean PIDClass = true; // True: Try to use the PIDHandler file i added; will probably break everything more than it already is lol
-    double vbucks = 0;
+    double craneSpeed = .5;
+    boolean PIDEnabled = false; // Toggle PID
+    boolean GyroEnabled = false; // Toggle Gyro Drive
+    boolean PIDClass = false; // True: Try to use the PIDHandler file i added; will probably break everything more than it already is lol
+    int vbucks = 100000;
 
     @Override
     public void init() {
@@ -92,6 +92,7 @@ public class TesseractTeleOp extends OpMode {
 
         // Servo Setup
         handServo = hardwareMap.get(Servo.class, "HAND");
+        wristServo = hardwareMap.get(Servo.class, "WRIST");
 
         // Motor Properties
         frontLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -172,7 +173,7 @@ public class TesseractTeleOp extends OpMode {
 
         // Crane Motor Speed
         // double cranePower = 0;
-        if (DPadUp && !(leftCraneMotor.getCurrentPosition() > CraneMax)) {
+        /*if (DPadUp && !(leftCraneMotor.getCurrentPosition() > CraneMax)) {
             if (!(EncoderToggle) || !(leftCraneMotor.getCurrentPosition() > CraneMax)) {
                 // Go upwards
                 leftCranePosition += craneSpeed;
@@ -184,11 +185,11 @@ public class TesseractTeleOp extends OpMode {
                 leftCranePosition -= craneSpeed;
                 rightCranePosition -= craneSpeed;
             }
-        }
+        }*/
 
         if (PIDEnabled) {
             if (PIDClass) {
-                leftCraneMotor.setPower(PID.PIDTO(
+                leftCraneMotor.setPower(PIDHandler.PIDTO(
                         leftCranePosition,
                         time.milliseconds(),
                         leftCraneOldTime,
@@ -199,7 +200,7 @@ public class TesseractTeleOp extends OpMode {
                         TesseractConfig.kI,
                         TesseractConfig.kD
                 ));
-                rightCraneMotor.setPower(PID.PIDTO(
+                rightCraneMotor.setPower(PIDHandler.PIDTO(
                         rightCranePosition,
                         time.milliseconds(),
                         rightCraneOldTime,
@@ -231,20 +232,35 @@ public class TesseractTeleOp extends OpMode {
                 rightCraneOldTime = time.milliseconds();
             }
         } else {
-            if (DPadDown && leftCraneMotor.getCurrentPosition() > CraneMin) {
-                leftCraneMotor.setPower(-1.0);
-                rightCraneMotor.setPower(-1.0);
+            /*if (DPadDown && leftCraneMotor.getCurrentPosition() > CraneMin) {
+                leftCraneMotor.setPower(-1.0*craneSpeed);
+                rightCraneMotor.setPower(-1.0*craneSpeed);
             }
             else if (DPadUp && leftCraneMotor.getCurrentPosition() < CraneMax) {
-                leftCraneMotor.setPower(1.0);
-                rightCraneMotor.setPower(1.0);
+                leftCraneMotor.setPower(1.0*craneSpeed);
+                rightCraneMotor.setPower(1.0*craneSpeed);
             }
             else {
                 leftCraneMotor.setPower(0.0);
                 rightCraneMotor.setPower(0.0);
-            }
+            }*/
+
+            leftCraneMotor.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
+            rightCraneMotor.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
         }
 
+        if (DPadDown/* && leftCraneMotor.getCurrentPosition() > CraneMin*/) {
+            leftCraneMotor.setPower(-1.0);
+            rightCraneMotor.setPower(-1.0);
+        }
+        else if (DPadUp/* && leftCraneMotor.getCurrentPosition() < CraneMax*/) {
+            leftCraneMotor.setPower(1.0);
+            rightCraneMotor.setPower(1.0);
+        }
+        else {
+            leftCraneMotor.setPower(0.0);
+            rightCraneMotor.setPower(0.0);
+        }
 
         /*
         if (craneMotor.getCurrentPosition() > CraneMax || craneMotor.getCurrentPosition() < CraneMin) {
@@ -256,10 +272,17 @@ public class TesseractTeleOp extends OpMode {
 
         // Setting Servo Speed
         if (AButton) {
-            handServo.setPosition(ServoOpenPos);
-        }
+            handServo.setPosition(TesseractConfig.openServo);
+        } 
         else if (BButton) {
-            handServo.setPosition(ServoClosePos);
+            handServo.setPosition(TesseractConfig.closeServo);
+        }
+
+        if (gamepad1.left_bumper) {
+            wristServo.setPosition(wristServo.getPosition() + .1);
+        }
+        else if (gamepad1.right_bumper) {
+            wristServo.setPosition(wristServo.getPosition() - .1);
         }
 
         // Encoder Reset
@@ -273,7 +296,7 @@ public class TesseractTeleOp extends OpMode {
         telemetry.addData("Original Gyro: ", "YAW: %.3f, PITCH: %.3f, ROLL: %.3f", Yaw, Pitch, Roll);
         telemetry.addData("Gyro: ", "YAW: %.3f, PITCH: %.3f, ROLL: %.3f", Yaw, Pitch, Roll);
         telemetry.addData("Gyro Drive: ", GyroEnabled);
-        telemetry.addData("Crane Motor:", leftCraneMotor.getCurrentPosition());
+        telemetry.addData("Hand:", handServo.getPosition());
 
         telemetry.addData(
                 "PID: ",
